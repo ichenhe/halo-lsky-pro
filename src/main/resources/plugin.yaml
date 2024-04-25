@@ -3,19 +3,18 @@
 apiVersion: plugin.halo.run/v1alpha1
 kind: Plugin
 metadata:
-  # The name defines how the plugin is invoked, A unique name
-  name: starter
+  name: chenhe-lsky-pro
 spec:
   enabled: true
-  requires: ">=2.11.0"
+  requires: "^2.11.0"
   author:
-    name: Halo
-    website: https://github.com/halo-dev
+    name: Chenhe
+    website: https://chenhe.me
   logo: logo.png
-  homepage: https://github.com/halo-dev/plugin-starter#readme
-  repo: https://github.com/halo-dev/plugin-starter
-  displayName: "插件快速开始模板"
-  description: "这是一个插件快速开始模板"
+  homepage: https://github.com/ichenhe/halo-lsky-pro#readme
+  repo: https://github.com/ichenhe/halo-lsky-pro
+  displayName: "Lsky Pro 图床"
+  description: "集成 Lsky Pro v2 图床作为附件存储后端"
   license:
     - name: "GPL-3.0"
-      url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"
+      url: "https://github.com/ichenhe/halo-lsky-pro/blob/main/LICENSE"
