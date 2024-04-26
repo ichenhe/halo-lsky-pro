@@ -1,7 +1,10 @@
 package me.chenhe.halo.lskypro;
 
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -13,7 +16,10 @@ import me.chenhe.halo.lskypro.client.UploadResponse;
 import org.pf4j.Extension;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -30,6 +36,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
 
     public static final String IMAGE_KEY = "lskypro.plugin.halo.chenhe.me/image-key";
     public static final String IMAGE_LINK = "lskypro.plugin.halo.chenhe.me/image-link";
+    public static final String INSTANCE_ID = "lskypro.plugin.halo.chenhe.me/instance-id";
 
 
     @Override
@@ -38,10 +45,11 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             .filter(ctx -> shouldHandle(ctx.policy(), ctx.file()))
             .flatMap(ctx -> {
                 final var properties = getProperties(ctx.configMap());
+                final var instanceId = getInstanceId(properties, ctx.policy());
                 return upload(ctx, properties)
                     .subscribeOn(Schedulers.boundedElastic())
                     .onErrorMap(this::handleError)
-                    .map(this::buildAttachment);
+                    .map(resp -> buildAttachment(resp, instanceId));
             });
     }
 
@@ -57,8 +65,21 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                         ctx.attachment().getMetadata().getName());
                     return Mono.just(ctx);
                 }
-                return delete(key.get(), getProperties(ctx.configMap()))
-                    .then(Mono.just(ctx));
+
+                final var properties = getProperties(ctx.configMap());
+                final var instanceId = getInstanceId(properties, ctx.policy());
+                final var imageInstanceId = getInstanceId(ctx.attachment());
+                if (imageInstanceId.isEmpty() || !imageInstanceId.get().equals(instanceId)) {
+                    log.warn(
+                        "Attachment {} instance ID does not match, skip deleting from LskyPro.",
+                        ctx.attachment().getMetadata().getName());
+                    return Mono.just(ctx);
+                }
+
+                return delete(key.get(), properties)
+                    .then(Mono.just(ctx))
+                    .doOnSuccess(v -> log.info("Attachment {} deleted from LskyPro.",
+                        ctx.attachment().getMetadata().getName()));
             })
             .onErrorMap(this::handleError)
             .map(DeleteContext::attachment);
@@ -105,12 +126,19 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(IMAGE_KEY));
     }
 
-    Attachment buildAttachment(UploadResponse uploadResponse) {
+    Optional<String> getInstanceId(Attachment attachment) {
+        return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(INSTANCE_ID));
+    }
+
+    Attachment buildAttachment(UploadResponse uploadResponse, @Nonnull String instanceId) {
+        Assert.hasText(instanceId, "instanceId cannot be empty");
+
         final var metadata = new Metadata();
         metadata.setGenerateName(UUID.randomUUID().toString());
         final var annotations = Map.of(
             IMAGE_KEY, uploadResponse.key(),
-            IMAGE_LINK, uploadResponse.links().url()
+            IMAGE_LINK, uploadResponse.links().url(),
+            INSTANCE_ID, instanceId
         );
         metadata.setAnnotations(annotations);
 
@@ -179,6 +207,37 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Each image must be associated with an instance ID. If the user does not specify it, an ID
+     * associated with the current policy is automatically generated.
+     * <p>
+     * Images (attachments) associated with the same instance ID are considered to be managed
+     * by current storage policy. This allows the relationship between attachments and LskyPro
+     * server to be preserved even after the plug-in is reinstalled or the server address is
+     * changed.
+     *
+     * @return Non-empty instance id of current policy.
+     */
+    @Nonnull
+    String getInstanceId(LskyProProperties properties, Policy policy) {
+        if (StringUtils.hasText(properties.getInstanceId())) {
+            return properties.getInstanceId();
+        }
+        try {
+            final var url = new URL(properties.getLskyUrl());
+            final var idBuilder = new StringBuilder().append(url.getHost()).append(url.getPath());
+            if (url.getPort() != -1) {
+                idBuilder.append(':').append(url.getPort());
+            }
+            final var instanceId = idBuilder.toString();
+            log.debug("Use default instance id '{}' for policy {}", instanceId,
+                policy.getMetadata().getName());
+            return instanceId;
+        } catch (MalformedURLException e) {
+            throw new ServerErrorException("Invalid LskyPro server: " + properties.getLskyUrl(), e);
+        }
     }
 
     LskyProProperties getProperties(ConfigMap configMap) {

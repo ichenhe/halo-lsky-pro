@@ -35,6 +35,14 @@ spec:
           label: Lsky Pro 储存策略
           help: '可选。用于指定 Lsky Pro 储存策略 ID，对应 strategy_id 参数。只能输入整数，留空为默认。'
           validation: 'min:0'
+        - $formkit: text
+          name: instanceId
+          label: 实例 ID
+          help: "可选。用于重装插件或 Lsky Pro 地址变更时保持已上传附件的关联状态。与此值匹配的附件视为由此存储策略管理。中途修改将导致之前上传的图片无法关联到 LskyPro。留空默认使用图床地址。"
+          validation: [ [ 'matches', '/^[\w-]+$/' ] ]
+          validation-visibility: live
+          validation-messages:
+            matches: "仅支持字母、数字、下划线 '_' 与短横线 '-'。"
         - $el: 'p'
           attrs:
             style: { padding-top: '10px' }

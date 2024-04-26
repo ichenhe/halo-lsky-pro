@@ -1,5 +1,6 @@
 package me.chenhe.halo.lskypro;
 
+import jakarta.annotation.Nullable;
 import lombok.Data;
 import org.springframework.util.StringUtils;
 
@@ -16,10 +17,17 @@ public class LskyProProperties {
      */
     private String lskyUrl;
 
-    /** Including Bearer */
+    /**
+     * Including Bearer
+     */
     private String lskyToken;
 
     private Integer lskyStrategy;
+
+    /**
+     * User-specified instance ID.
+     */
+    private @Nullable String instanceId;
 
     @SuppressWarnings("unused")
     public void setLskyUrl(String lskyUrl) {
@@ -36,5 +44,14 @@ public class LskyProProperties {
             lskyUrl = lskyUrl.substring(0, lskyUrl.length() - apiSuffix.length());
         }
         this.lskyUrl = lskyUrl;
+    }
+
+    @SuppressWarnings("unused")
+    public void setInstanceId(String instanceId) {
+        if (StringUtils.hasText(instanceId)) {
+            this.instanceId = instanceId;
+        } else {
+            this.instanceId = null;
+        }
     }
 }
