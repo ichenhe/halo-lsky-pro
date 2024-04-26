@@ -8,10 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import me.chenhe.halo.lskypro.client.LskyProClient;
+import me.chenhe.halo.lskypro.client.LskyProException;
 import me.chenhe.halo.lskypro.client.UploadResponse;
 import org.pf4j.Extension;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import run.halo.app.core.extension.attachment.Attachment;
@@ -37,6 +40,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 final var properties = getProperties(ctx.configMap());
                 return upload(ctx, properties)
                     .subscribeOn(Schedulers.boundedElastic())
+                    .onErrorMap(this::handleError)
                     .map(this::buildAttachment);
             });
     }
@@ -56,6 +60,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 return delete(key.get(), getProperties(ctx.configMap()))
                     .then(Mono.just(ctx));
             })
+            .onErrorMap(this::handleError)
             .map(DeleteContext::attachment);
     }
 
@@ -121,6 +126,27 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         attachment.setSpec(spec);
         log.info("Built attachment {} successfully", uploadResponse.key());
         return attachment;
+    }
+
+    protected Throwable handleError(Throwable t) {
+        if (t instanceof LskyProException e) {
+            if (e.statusCode.value() == 401) {
+                return new ServerWebInputException(
+                    "Lsky Pro authentication failed, please check your API token.");
+            } else if (e.statusCode.value() == 403) {
+                return new ServerWebInputException(
+                    "Lsky Pro API may have been disabled (HTTP 403).");
+            } else if (e.statusCode.value() == 429) {
+                return new ServerWebInputException(
+                    "Lsky Pro API error: usage quota exceeded (HTTP 429).");
+            }
+            return new ServerWebInputException(
+                "LskyPro API error (HTTP %d): %s".formatted(e.statusCode.value(), e.getMessage()));
+        } else if (t instanceof WebClientRequestException e) {
+            return new ServerWebInputException(
+                "Failed to request LskyPro API: %s".formatted(e.getMessage()));
+        }
+        return t;
     }
 
     /**

@@ -9,6 +9,7 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,11 +22,27 @@ public class LskyProClient {
 
         var builder = WebClient.builder()
             .baseUrl(baseUrl)
-            .defaultHeader("Accept", "application/json");
+            .defaultHeader("Accept", "application/json")
+            .filter(errorHandler());
         if (StringUtils.hasText(token)) {
             builder = builder.defaultHeader("Authorization", token);
         }
         client = builder.build();
+    }
+
+    protected static ExchangeFilterFunction errorHandler() {
+        return ExchangeFilterFunction.ofResponseProcessor(resp -> {
+            if (resp.statusCode().is5xxServerError()) {
+                return resp.bodyToMono(String.class)
+                    .flatMap(errorBody ->
+                        Mono.error(new LskyProException(resp.statusCode(), errorBody)));
+            } else if (!resp.statusCode().is2xxSuccessful()) {
+                return resp.bodyToMono(LskyResponse.class).flatMap(body ->
+                    Mono.error(new LskyProException(resp.statusCode(), body.message)));
+            }
+            // 2xx
+            return Mono.just(resp);
+        });
     }
 
     public Mono<UploadResponse> upload(@NotNull Flux<DataBuffer> content, @Nullable String filename,
@@ -53,7 +70,6 @@ public class LskyProClient {
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<LskyResponse<UploadResponse>>() {
             })
-            // TODO: error handling
             .map((resp) -> resp.data);
     }
 
@@ -62,7 +78,6 @@ public class LskyProClient {
             .uri("/images/" + key)
             .retrieve()
             .bodyToMono(LskyResponse.class)
-            // TODO: error handling
             .flatMap((resp) -> Mono.empty());
     }
 
