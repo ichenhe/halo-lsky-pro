@@ -1,6 +1,14 @@
-# Halo-LskyPro
+<div align="center">
+    <img width="106px" src="https://github.com/ichenhe/halo-lsky-pro/assets/10266066/9dc173b0-d95e-457d-ba33-9eb2ad3e1f93">
+    <h1>Halo - Lsky Pro</h1>
+    <p>集成 <a href="https://www.lsky.pro/">Lsky Pro</a> 兰空图床作为 <a href="https://www.halo.run/">Halo</a> 的存储后端。</p>
+    <p align="center">
+        <a href="//github.com/ichenhe/halo-lsky-pro/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/ichenhe/halo-lsky-pro?style=flat-square" /></a>
+        <a href="//github.com/ichenhe/halo-lsky-pro/actions/workflows/ci.yaml"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/ichenhe/halo-lsky-pro/ci.yaml?style=flat-square&label=build" /></a>
+        <a href="./LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/ichenhe/halo-lsky-pro?style=flat-square" /></a>
+    </p>
 
-集成 [Lsky Pro](https://www.lsky.pro/) 兰空图床作为 [Halo](https://www.halo.run/) 的存储后端。
+</div>
 
 局限性：
 
