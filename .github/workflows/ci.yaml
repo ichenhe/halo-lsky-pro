@@ -9,7 +9,19 @@ on:
       - main
 
 jobs:
-  ci:
-    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@v1
-    with:
-      ui-path: "ui"
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Environment
+        uses: halo-sigs/actions/plugin-setup-env@v1
+        with:
+          cache-dept-path: "ui/pnpm-lock.yaml"
+
+      - name: Build with gradle
+        run: ./gradlew clean build
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: "build/libs"
