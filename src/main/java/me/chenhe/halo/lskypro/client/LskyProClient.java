@@ -25,7 +25,7 @@ public class LskyProClient {
             .defaultHeader("Accept", "application/json")
             .filter(errorHandler());
         if (StringUtils.hasText(token)) {
-            builder = builder.defaultHeader("Authorization", token);
+            builder = builder.defaultHeader("Authorization", "Bearer " + token);
         }
         client = builder.build();
     }

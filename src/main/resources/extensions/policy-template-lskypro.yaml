@@ -26,9 +26,9 @@ spec:
         - $formkit: text
           name: lskyToken
           label: API Token
-          help: '格式类似 Bearer x|xxxxxxx。留空则以游客身份上传。'
-          placeholder: "Bearer  x|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-          validation: [ [ 'matches', '/^Bearer \d+\|\w+$/' ] ]
+          help: '格式类似 x|xxxxxxx。留空则以游客身份上传。'
+          placeholder: "x|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          validation: [ [ 'matches', '/^\d+\|\w+$/' ] ]
           validation-visibility: live
         - $formkit: number
           name: lskyStrategy

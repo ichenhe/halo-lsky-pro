@@ -18,7 +18,7 @@ public class LskyProProperties {
     private String lskyUrl;
 
     /**
-     * Including Bearer
+     * Without leading {@code Bearer}.
      */
     private String lskyToken;
 
@@ -44,6 +44,20 @@ public class LskyProProperties {
             lskyUrl = lskyUrl.substring(0, lskyUrl.length() - apiSuffix.length());
         }
         this.lskyUrl = lskyUrl;
+    }
+
+    @SuppressWarnings("unused")
+    public void setLskyToken(@Nullable String lskyToken) {
+        if (!StringUtils.hasText(lskyToken)) {
+            this.lskyToken = null;
+            return;
+        }
+        lskyToken = lskyToken.trim();
+        final String prefix = "Bearer";
+        if (lskyToken.startsWith(prefix)) {
+            lskyToken = lskyToken.substring(prefix.length());
+        }
+        this.lskyToken = StringUtils.hasText(lskyToken) ? lskyToken : null;
     }
 
     @SuppressWarnings("unused")
