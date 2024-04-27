@@ -1,3 +1,5 @@
+import java.util.concurrent.TimeUnit
+
 plugins {
     id 'java'
     id "com.github.node-gradle.node" version "5.0.0"
@@ -6,6 +8,8 @@ plugins {
 }
 
 group 'me.chenhe.halo'
+version = extractVersionFromGit()
+
 sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
@@ -53,4 +57,33 @@ build {
 
 halo {
     version = '2.11'
+}
+
+tasks.register('version') {
+    doLast {
+        println(extractVersionFromGit())
+    }
+}
+
+String extractVersionFromGit() {
+    def process = "git describe --tags --match=v[0-9]*.[0-9]*.[0-9]* --long --abbrev=7".execute()
+    def timeout = !process.waitFor(10, TimeUnit.SECONDS)
+    if (timeout || process.exitValue() != 0) {
+        // failed to find matched tag
+        logger.warn("Could not find a valid version tag through git, use default version.")
+        return "0.0.1-SNAPSHOT"
+    }
+    def outputs = process.text =~ /v(\d+\.\d+.\d+)-(\d+)-(\w+)/
+    if (!outputs) {
+        logger.warn("Malformed version tag , use default version.")
+        return "0.0.1-SNAPSHOT"
+    }
+    var sb = new StringBuilder(30)
+    sb.append(outputs.group(1))
+    if (Integer.parseInt(outputs.group(2)) != 0) {
+        sb.append('-')
+        sb.append(outputs.group(3))
+        sb.append('-SNAPSHOT')
+    }
+    return sb.toString()
 }
