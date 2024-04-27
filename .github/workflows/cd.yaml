@@ -1,0 +1,60 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  workflow_dispatch: { }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      # the file name (without path) of built jar
+      jarFile: ${{ steps.filename.outputs.jarFile }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Environment
+        uses: halo-sigs/actions/plugin-setup-env@v1
+        with:
+          cache-dept-path: "ui/pnpm-lock.yaml"
+
+      - name: Build with gradle
+        run: ./gradlew clean build
+
+      - name: Get built jar file name
+        id: filename
+        run: |-
+          JAR_NUMS=$(ls build/libs | grep "\.jar" | wc -l)
+          test $JAR_NUMS -eq 1
+          JAR_FILE=$(ls build/libs | grep "\.jar" | head -n 1)
+          echo "jarFile=$JAR_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.filename.outputs.jarFile }}
+          path: "build/libs/${{ steps.filename.outputs.jarFile }}"
+          if-no-files-found: error
+
+  draft-release:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    env:
+      JAR_FILENAME: ${{ needs.build.outputs.jarFile }}
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.JAR_FILENAME }}
+
+      - name: Draft Release
+        uses: ncipollo/release-action@v1
+        with:
+          draft: true
+          artifactErrorsFailBuild: true
+          artifacts: ${{ env.JAR_FILENAME }}
