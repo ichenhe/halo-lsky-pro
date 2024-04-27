@@ -1,0 +1,27 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: chenhe-lsky-pro-settings
+spec:
+  forms:
+    - group: basic
+      label: 使用提示
+      formSchema:
+        - $el: 'p'
+          attrs:
+            style: { padding: '4px 0' }
+          children: "此处无需设置，请前往 「附件 - 存储策略」添加策略。"
+
+        - $el: 'a'
+          attrs:
+            href: "https://github.com/ichenhe/halo-lsky-pro#readme"
+            target: "_blank"
+            style: { display: 'block', padding: '4px 0'}
+          children: "📖 详细使用说明 [点击跳转]"
+
+        - $el: 'a'
+          attrs:
+            href: "https://github.com/ichenhe/halo-lsky-pro/issues"
+            target: "_blank"
+            style: { display: 'block', padding: '4px 0' }
+          children: "🤔 问题反馈 / 寻求帮助请前往 GitHub issues [点击跳转]"

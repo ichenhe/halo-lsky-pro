@@ -11,6 +11,8 @@ spec:
     name: Chenhe
     website: https://chenhe.me
   logo: logo.png
+  settingName: chenhe-lsky-pro-settings
+  configMapName: chenhe-lsky-pro-configMap
   homepage: https://github.com/ichenhe/halo-lsky-pro#readme
   repo: https://github.com/ichenhe/halo-lsky-pro
   displayName: "Lsky Pro 兰空图床"
