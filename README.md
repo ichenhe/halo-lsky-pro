@@ -3,7 +3,8 @@
     <h1>Halo - Lsky Pro</h1>
     <p>集成 <a href="https://www.lsky.pro/">Lsky Pro</a> 兰空图床作为 <a href="https://www.halo.run/">Halo</a> 的存储后端。</p>
     <p align="center">
-        <a href="//github.com/ichenhe/halo-lsky-pro/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/ichenhe/halo-lsky-pro?style=flat-square" /></a>
+        <a href="https://www.halo.run/store/apps/app-jZHhX?tab=readme"><img alt="Halo App Store" src="https://img.shields.io/badge/Halo-%E5%BA%94%E7%94%A8%E5%B8%82%E5%9C%BA-%230A81F5?style=flat-square&logo=appstore&logoColor=%23fff" /></a>
+        <a href="//github.com/ichenhe/halo-lsky-pro/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/ichenhe/halo-lsky-pro?style=flat-square&logo=github" /></a>
         <a href="//github.com/ichenhe/halo-lsky-pro/actions/workflows/ci.yaml"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/ichenhe/halo-lsky-pro/ci.yaml?style=flat-square&label=build" /></a>
         <a href="./LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/ichenhe/halo-lsky-pro?style=flat-square" /></a>
     </p>
@@ -38,7 +39,7 @@ curl --location --request POST 'https://example.com/api/v1/tokens' \
 
 例如 [Getman](https://getman.cn/):
 
-![](https://img.chenhe.cc/i/2024/04/27/662c45de49a6e.webp)
+![](https://github.com/ichenhe/halo-lsky-pro/assets/10266066/94b54967-5198-4555-abf6-da9651a6bba1)
 
 
 
