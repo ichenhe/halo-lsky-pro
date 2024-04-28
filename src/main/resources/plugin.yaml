@@ -15,6 +15,7 @@ spec:
   configMapName: chenhe-lsky-pro-configMap
   homepage: https://github.com/ichenhe/halo-lsky-pro#readme
   repo: https://github.com/ichenhe/halo-lsky-pro
+  issues: https://github.com/ichenhe/halo-lsky-pro/issues
   displayName: "Lsky Pro 兰空图床"
   description: "集成 Lsky Pro v2 图床作为附件存储后端"
   license:
