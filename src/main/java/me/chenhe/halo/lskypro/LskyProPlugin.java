@@ -13,11 +13,9 @@ public class LskyProPlugin extends BasePlugin {
 
     @Override
     public void start() {
-        System.out.println("插件启动成功！");
     }
 
     @Override
     public void stop() {
-        System.out.println("插件停止！");
     }
 }
