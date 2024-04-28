@@ -6,7 +6,7 @@ metadata:
   name: chenhe-lsky-pro
 spec:
   enabled: true
-  requires: "^2.11.0"
+  requires: "^2.14.0"
   author:
     name: Chenhe
     website: https://chenhe.me

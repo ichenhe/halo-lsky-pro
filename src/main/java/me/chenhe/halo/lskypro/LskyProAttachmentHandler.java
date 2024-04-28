@@ -48,7 +48,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                 final var instanceId = getInstanceId(properties, ctx.policy());
                 return upload(ctx, properties)
                     .subscribeOn(Schedulers.boundedElastic())
-                    .onErrorMap(this::handleError)
+                    .onErrorMap(LskyProAttachmentHandler::handleError)
                     .map(resp -> buildAttachment(resp, instanceId));
             });
     }
@@ -81,7 +81,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
                     .doOnSuccess(v -> log.info("Attachment {} deleted from LskyPro.",
                         ctx.attachment().getMetadata().getName()));
             })
-            .onErrorMap(this::handleError)
+            .onErrorMap(LskyProAttachmentHandler::handleError)
             .map(DeleteContext::attachment);
     }
 
@@ -156,7 +156,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         return attachment;
     }
 
-    protected Throwable handleError(Throwable t) {
+    static Throwable handleError(Throwable t) {
         if (t instanceof LskyProException e) {
             if (e.statusCode.value() == 401) {
                 return new ServerWebInputException(
