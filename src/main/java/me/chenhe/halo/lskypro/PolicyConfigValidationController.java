@@ -29,7 +29,6 @@ public class PolicyConfigValidationController {
 
     @PostMapping("/policies/validation")
     public Mono<Void> validatePolicyConfig(@RequestBody LskyProProperties properties) {
-        log.info("Validate policy config: {}", properties);
         final var content = readImage();
         final var client = new LskyProClient(properties.getLskyUrl(), properties.getLskyToken());
         return client.upload(content, FILE_NAME, null, null)
