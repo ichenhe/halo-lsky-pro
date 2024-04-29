@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.client.MultipartBodyBuilder;
@@ -70,15 +71,36 @@ public class LskyProClient {
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<LskyResponse<UploadResponse>>() {
             })
-            .map((resp) -> resp.data);
+            .flatMap(this::checkResponse)
+            .flatMap((data) -> {
+                if (data == null || data.links() == null || !StringUtils.hasText(
+                    data.links().url())) {
+                    return Mono.error(
+                        new LskyProException(HttpStatus.OK, "links or url is empty"));
+                }
+                return Mono.just(data);
+            });
     }
 
     public Mono<Void> delete(@NotNull String key) {
         return client.delete()
             .uri("/images/" + key)
             .retrieve()
-            .bodyToMono(LskyResponse.class)
-            .flatMap((resp) -> Mono.empty());
+            .bodyToMono(new ParameterizedTypeReference<LskyResponse<Void>>() {
+            })
+            .flatMap((this::checkResponse))
+            .then(Mono.empty());
+    }
+
+    /**
+     * Verify that the Lsky Pro API response status is {@code true}.
+     */
+    <T> Mono<T> checkResponse(LskyResponse<T> resp) {
+        if (resp.status()) {
+            return Mono.justOrEmpty(resp.data);
+        }
+        return Mono.error(
+            new LskyProException(HttpStatus.OK, "status=false: " + resp.message));
     }
 
     public record LskyResponse<T>(boolean status, String message, T data) {
