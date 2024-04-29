@@ -14,6 +14,8 @@ import me.chenhe.halo.lskypro.client.LskyProClient;
 import me.chenhe.halo.lskypro.client.LskyProException;
 import me.chenhe.halo.lskypro.client.UploadResponse;
 import org.pf4j.Extension;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.util.Assert;
@@ -132,22 +134,47 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
 
     Attachment buildAttachment(UploadResponse uploadResponse, @Nonnull String instanceId) {
         Assert.hasText(instanceId, "instanceId cannot be empty");
+        Assert.notNull(uploadResponse.links(), "links cannot be null");
+        Assert.hasText(uploadResponse.links().url(), "url cannot be empty");
+
+        final var url = uploadResponse.links().url();
 
         final var metadata = new Metadata();
         metadata.setGenerateName(UUID.randomUUID().toString());
         final var annotations = Map.of(
             IMAGE_KEY, uploadResponse.key(),
-            IMAGE_LINK, uploadResponse.links().url(),
+            IMAGE_LINK, url,
             INSTANCE_ID, instanceId
         );
         metadata.setAnnotations(annotations);
 
         // Warning: due to the limitation of Lsky Pro API,
-        // the file size and media type may be wrong if you configured server side image conversion.
+        // the file size may be wrong if you configured server side image conversion.
         var spec = new Attachment.AttachmentSpec();
+
+        // The lsky pro returns media type of uploaded file, which is not same with actual url if
+        // image conversion or compression is enabled.
+        // So, try to infer the real type from url. e.g. https://example.com/a.png -> image/png
+        MediaType mediaType = null;
+        try {
+            mediaType = MediaType.parseMediaType(uploadResponse.mimetype());
+        } catch (InvalidMediaTypeException ignored) {
+        }
+        final var filename =
+            url.lastIndexOf('/') == -1 ? null : url.substring(url.lastIndexOf('/') + 1);
+        var inferredMediaType = MediaTypeFactory.getMediaType(filename);
+        if (inferredMediaType.isPresent() && !inferredMediaType.get().equals(mediaType)) {
+            log.info("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
+                mediaType);
+            mediaType = inferredMediaType.get();
+        }
         spec.setSize((long) (uploadResponse.size() * 1024L));
         spec.setDisplayName(uploadResponse.name());
-        spec.setMediaType(uploadResponse.mimetype());
+        if (mediaType != null) {
+            spec.setMediaType(mediaType.toString());
+        } else {
+            log.warn("No media type in API response nor can it be inferred from the url {}", url);
+        }
 
         final var attachment = new Attachment();
         attachment.setMetadata(metadata);

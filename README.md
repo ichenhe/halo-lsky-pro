@@ -1,5 +1,5 @@
 <div align="center">
-    <img width="106px" src="https://github.com/ichenhe/halo-lsky-pro/assets/10266066/9dc173b0-d95e-457d-ba33-9eb2ad3e1f93">
+    <img alt="logo" width="106px" src="https://github.com/ichenhe/halo-lsky-pro/assets/10266066/9dc173b0-d95e-457d-ba33-9eb2ad3e1f93">
     <h1>Halo - Lsky Pro</h1>
     <p>集成 <a href="https://www.lsky.pro/">Lsky Pro</a> 兰空图床作为 <a href="https://www.halo.run/">Halo</a> 的存储后端。</p>
     <p align="center">
@@ -15,7 +15,7 @@
 
 - 仅支持 Lsky Pro v2，不支持旧版本。
 - 由于 Lsky Pro 限制，仅支持上传图片类附件。（不影响上传任意文件到其他存储策略）
-- 由于 Lsky Pro 限制，若启用图床端格式转换（图片压缩）将导致 Halo 中显示的附件大小或文件类型不正确。
+- 由于 Lsky Pro 限制，若启用图床端格式转换（图片压缩）将导致 Halo 中显示的附件大小不正确。
 
 ## 📖 使用说明
 
