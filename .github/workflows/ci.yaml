@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required by automatic version
       - name: Setup Environment
         uses: halo-sigs/actions/plugin-setup-env@v1
         with:
