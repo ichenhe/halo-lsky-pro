@@ -25,7 +25,9 @@ import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import run.halo.app.core.attachment.ThumbnailSize;
 import run.halo.app.core.extension.attachment.Attachment;
+import run.halo.app.core.extension.attachment.Constant;
 import run.halo.app.core.extension.attachment.Policy;
 import run.halo.app.core.extension.attachment.endpoint.AttachmentHandler;
 import run.halo.app.extension.ConfigMap;
@@ -48,43 +50,48 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             .flatMap(ctx -> {
                 final var properties = getProperties(ctx.configMap());
                 final var instanceId = getInstanceId(properties, ctx.policy());
+                log.info("[UPLOAD] Starting upload, instanceId: {}", instanceId);
                 return upload(ctx, properties)
                     .subscribeOn(Schedulers.boundedElastic())
                     .onErrorMap(LskyProAttachmentHandler::handleError)
-                    .map(resp -> buildAttachment(resp, instanceId));
+                    .map(resp -> {
+                        log.info("[UPLOAD] LskyPro response - key: {}, url: {}", resp.key(), resp.links().url());
+                        return buildAttachment(resp, instanceId);
+                    });
             });
     }
 
     @Override
     public Mono<Attachment> delete(DeleteContext deleteContext) {
         return Mono.just(deleteContext)
-            .filter((ctx) -> shouldHandle(ctx.policy(), null))
-            .flatMap((ctx) -> {
-                final var key = getImageKey(ctx.attachment());
-                if (key.isEmpty()) {
+            .filter(context -> this.shouldHandle(context.policy(), null))
+            .flatMap(context -> {
+                var imageKey = getImageKey(context.attachment());
+                if (imageKey.isEmpty()) {
                     log.warn(
                         "Cannot obtain image key from attachment {}, skip deleting from LskyPro.",
-                        ctx.attachment().getMetadata().getName());
-                    return Mono.just(ctx);
+                        context.attachment().getMetadata().getName());
+                    return Mono.just(context.attachment());
                 }
-
-                final var properties = getProperties(ctx.configMap());
-                final var instanceId = getInstanceId(properties, ctx.policy());
-                final var imageInstanceId = getInstanceId(ctx.attachment());
+                
+                final var properties = getProperties(context.configMap());
+                final var instanceId = getInstanceId(properties, context.policy());
+                final var imageInstanceId = getInstanceId(context.attachment());
+                
                 if (imageInstanceId.isEmpty() || !imageInstanceId.get().equals(instanceId)) {
                     log.warn(
-                        "Attachment {} instance ID does not match, skip deleting from LskyPro.",
-                        ctx.attachment().getMetadata().getName());
-                    return Mono.just(ctx);
+                        "Attachment {} instance ID does not match (policy: {}, image: {}), skip deleting from LskyPro.",
+                        context.attachment().getMetadata().getName(), instanceId, imageInstanceId.orElse("EMPTY"));
+                    return Mono.just(context.attachment());
                 }
-
-                return delete(key.get(), properties)
-                    .then(Mono.just(ctx))
-                    .doOnSuccess(v -> log.info("Attachment {} deleted from LskyPro.",
-                        ctx.attachment().getMetadata().getName()));
-            })
-            .onErrorMap(LskyProAttachmentHandler::handleError)
-            .map(DeleteContext::attachment);
+                
+                return delete(imageKey.get(), properties)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .doOnSuccess(v -> log.info("Delete image {} from LskyPro successfully",
+                        imageKey.get()))
+                    .onErrorMap(LskyProAttachmentHandler::handleError)
+                    .thenReturn(context.attachment());
+            });
     }
 
     @Override
@@ -98,8 +105,24 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         if (!shouldHandle(policy, null)) {
             return Mono.empty();
         }
+        // 优先从 status 读取
+        var status = attachment.getStatus();
+        if (status != null && StringUtils.hasText(status.getPermalink())) {
+            return Mono.just(URI.create(status.getPermalink()));
+        }
+        // 兼容旧数据，从 annotations 读取
         final var link = getImageLink(attachment);
         return link.map(s -> Mono.just(URI.create(s))).orElseGet(Mono::empty);
+    }
+
+    @Override
+    public Mono<Map<ThumbnailSize, URI>> getThumbnailLinks(Attachment attachment, Policy policy,
+        ConfigMap configMap) {
+        if (!shouldHandle(policy, null)) {
+            return Mono.empty();
+        }
+        // LskyPro does not support thumbnail parameters, return empty map
+        return Mono.just(Map.of());
     }
 
     Mono<Void> delete(String key, LskyProProperties properties) {
@@ -116,20 +139,33 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             )
             .flatMap((lskyProClient ->
                 lskyProClient.upload(uploadContext.file().content(),
-                    uploadContext.file().filename(), null, properties.getLskyStrategy())
+                    uploadContext.file().filename(), null, properties.getLskyStrategy(),
+                    properties.getLskyAlbumId())
             ));
     }
 
     Optional<String> getImageLink(Attachment attachment) {
-        return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(IMAGE_LINK));
+        var annotations = attachment.getMetadata().getAnnotations();
+        if (annotations == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(annotations.get(IMAGE_LINK));
     }
 
     Optional<String> getImageKey(Attachment attachment) {
-        return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(IMAGE_KEY));
+        var annotations = attachment.getMetadata().getAnnotations();
+        if (annotations == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(annotations.get(IMAGE_KEY));
     }
 
     Optional<String> getInstanceId(Attachment attachment) {
-        return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(INSTANCE_ID));
+        var annotations = attachment.getMetadata().getAnnotations();
+        if (annotations == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(annotations.get(INSTANCE_ID));
     }
 
     Attachment buildAttachment(UploadResponse uploadResponse, @Nonnull String instanceId) {
@@ -147,6 +183,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             INSTANCE_ID, instanceId
         );
         metadata.setAnnotations(annotations);
+        log.info("[BUILD] Created attachment metadata with annotations: {}", annotations);
 
         // Warning: due to the limitation of Lsky Pro API,
         // the file size may be wrong if you configured server side image conversion.
@@ -179,6 +216,12 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         final var attachment = new Attachment();
         attachment.setMetadata(metadata);
         attachment.setSpec(spec);
+        
+        // Halo 2.22+ requires setting status with permalink
+        var status = new Attachment.AttachmentStatus();
+        status.setPermalink(url);
+        attachment.setStatus(status);
+        
         log.info("Built attachment {} successfully", uploadResponse.key());
         return attachment;
     }

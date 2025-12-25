@@ -24,6 +24,8 @@ public class LskyProProperties {
 
     private Integer lskyStrategy;
 
+    private Integer lskyAlbumId;
+
     /**
      * User-specified instance ID.
      */

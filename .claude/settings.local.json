@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradlew.bat build:*)",
+      "Bash(D:/JobFiles/halo-lsky-pro/gradlew.bat build)",
+      "Bash(JAVA_HOME=\"C:/Users/Tim/.gradle/jdks/amazon_com_inc_-21-amd64-windows.2\" D:/JobFiles/halo-lsky-pro/gradlew.bat build:*)",
+      "Bash(ls:*)",
+      "mcp__github-mcp__get_file_contents",
+      "mcp__github-mcp__search_code"
+    ]
+  }
+}
