@@ -50,12 +50,12 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             .flatMap(ctx -> {
                 final var properties = getProperties(ctx.configMap());
                 final var instanceId = getInstanceId(properties, ctx.policy());
-                log.info("[UPLOAD] Starting upload, instanceId: {}", instanceId);
+                log.debug("Starting upload, instanceId: {}", instanceId);
                 return upload(ctx, properties)
                     .subscribeOn(Schedulers.boundedElastic())
                     .onErrorMap(LskyProAttachmentHandler::handleError)
                     .map(resp -> {
-                        log.info("[UPLOAD] LskyPro response - key: {}, url: {}", resp.key(), resp.links().url());
+                        log.debug("LskyPro response - key: {}, url: {}", resp.key(), resp.links().url());
                         return buildAttachment(resp, instanceId);
                     });
             });
@@ -183,7 +183,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             INSTANCE_ID, instanceId
         );
         metadata.setAnnotations(annotations);
-        log.info("[BUILD] Created attachment metadata with annotations: {}", annotations);
+        log.debug("Created attachment metadata with annotations: {}", annotations);
 
         // Warning: due to the limitation of Lsky Pro API,
         // the file size may be wrong if you configured server side image conversion.
@@ -201,7 +201,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             url.lastIndexOf('/') == -1 ? null : url.substring(url.lastIndexOf('/') + 1);
         var inferredMediaType = MediaTypeFactory.getMediaType(filename);
         if (inferredMediaType.isPresent() && !inferredMediaType.get().equals(mediaType)) {
-            log.info("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
+            log.debug("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
                 mediaType);
             mediaType = inferredMediaType.get();
         }
@@ -222,7 +222,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         status.setPermalink(url);
         attachment.setStatus(status);
         
-        log.info("Built attachment {} successfully", uploadResponse.key());
+        log.debug("Built attachment {} successfully", uploadResponse.key());
         return attachment;
     }
 
