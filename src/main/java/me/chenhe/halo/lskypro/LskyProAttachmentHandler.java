@@ -261,21 +261,8 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             return false;
         }
 
-        // check media type
-        if (filePart == null) {
-            // not an upload request, no need to check the media type
-            return true;
-        }
-        final var mediaType = MediaTypeFactory.getMediaType(filePart.filename());
-        if (mediaType.isEmpty()) {
-            log.warn("Ignore attachment request {} due to empty media type", filePart.filename());
-            return false;
-        }
-        if (!"image".equals(mediaType.get().getType())) {
-            log.warn("Ignore attachment request {} due to non-image media type: {}",
-                filePart.filename(), mediaType.get());
-            return false;
-        }
+        // 不再限制文件类型，让 Lsky Pro 服务端自己验证
+        // Lsky Pro 后台可以配置允许的文件格式
         return true;
     }
 
