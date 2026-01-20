@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev/*
   pull_request:
     branches:
       - main
@@ -18,8 +19,7 @@ jobs:
       - name: Setup Environment
         uses: halo-sigs/actions/plugin-setup-env@v1
         with:
-          cache-dept-path: "ui/pnpm-lock.yaml"
-
+          skip-node-setup: true
       - name: Build with gradle
         run: ./gradlew clean build
       - name: Upload Artifacts
