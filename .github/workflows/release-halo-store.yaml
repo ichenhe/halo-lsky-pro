@@ -1,0 +1,76 @@
+name: Release-Halo
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      releaseName:
+        description: The release name on GitHub
+        required: true
+        type: string
+
+jobs:
+  # require secrets `HALO_PAT`
+  halo-store-release:
+    runs-on: ubuntu-latest
+    env:
+      HALO_APP_ID: 'app-jZHhX'
+      ASSET_DIR: 'assets'
+
+    steps:
+      - name: Get release info
+        id: release-info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_NAME: ${{ github.event.release.name || inputs.releaseName }}
+        run: |-
+          if [[ -z "$RELEASE_NAME" ]]; then
+            echo "::error:: Release name is empty"
+            exit 1
+          fi
+          
+          RELEASE_ID=$(gh release view $RELEASE_NAME --json databaseId --jq '.databaseId')
+          echo "$RELEASE_NAME: $RELEASE_ID"
+          
+          ASSETS=$(gh release view $RELEASE_NAME --json assets --jq '.assets')
+          ASSETS_NUM=$(jq 'length' <<< "$ASSETS")
+          echo "Find $ASSETS_NUM assets in release $RELEASE_NAME:"
+          jq <<< "$ASSETS"
+          
+          if [ "$ASSETS_NUM" -ne 1 ]; then
+            echo "::error:: Expect 1 asset, found $$ASSETS_NUM."
+            exit 1
+          fi
+          
+          ASSET_NAME=$(jq -r '.[0].name' <<< "$ASSETS")
+          ASSET_URL=$(jq -r '.[0].url' <<< "$ASSETS")
+          if [[ "$ASSET_NAME" != *.jar ]]; then
+            echo "::error:: Expect .jar but got $ASSET_NAME"
+            exit 1
+          fi
+          
+          echo "id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          echo "assetName=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+          echo "assetUrl=$ASSET_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Download jar
+        run: |-
+          mkdir -p "$ASSET_DIR"
+          wget "$ASSET_URL" -O "$ASSET_DIR/$ASSET_NAME"
+          ls -lh "$ASSET_DIR"
+        env:
+          ASSET_NAME: ${{ steps.release-info.outputs.assetName }}
+          ASSET_URL: ${{ steps.release-info.outputs.assetUrl }}
+
+      - name: Sync to Halo App Store
+        uses: halo-sigs/app-store-release-action@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          app-id: ${{ env.HALO_APP_ID }}
+          halo-pat: ${{ secrets.HALO_PAT }}
+          release-id: ${{ steps.release-info.outputs.id }}
+          assets-dir: ${{ env.ASSET_DIR }}
