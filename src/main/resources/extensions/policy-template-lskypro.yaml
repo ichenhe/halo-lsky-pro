@@ -39,6 +39,11 @@ spec:
               label: Lsky Pro 储存策略
               help: '可选。用于指定 Lsky Pro 储存策略 ID，对应 strategy_id 参数。只能输入整数，留空为默认。'
               validation: 'min:0'
+            - $formkit: number
+              name: lskyAlbumId
+              label: Lsky Pro 相册 ID
+              help: '可选。用于指定上传图片所属的相册 ID，留空则不指定。需要付费版兰空图床方能生效。'
+              validation: 'min:0'
             - $formkit: text
               name: instanceId
               label: 实例 ID

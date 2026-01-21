@@ -42,6 +42,21 @@ curl --location --request POST 'https://example.com/api/v1/tokens' \
 ![](https://github.com/ichenhe/halo-lsky-pro/assets/10266066/94b54967-5198-4555-abf6-da9651a6bba1)
 
 
+### 相册 ID
+
+> [!NOTE]
+>
+> 开源版兰空图床不支持此参数，设置后无效。
+
+此处可以指定上传图片的归属相册，留空则不指定（即不属于任何相册）。
+
+如果 Lsky Pro 后台不显示相册 ID。打开浏览的开发者工具 (`F12`)，切换到网络 (Network) 标签页，然后再点击 「我的图片 - 相册 - 选中一个相册」，此时可以看到多了一个请求，名称形如 `images?page=1&album_id=1`，从这就可以得到相册 ID 啦。
+
+当然也可以通过 API 获取，如果你有 curl 的话那么执行：
+
+```bash
+curl https://yourdomain.com/api/v1/albums -H 'Authorization: Bearer {your-api-token}'
+```
 
 ### 实例 ID
 
@@ -50,17 +65,14 @@ Halo 的设计非常灵活，允许安装一个插件后基于不同参数（例
 - 每个附件都会在上传时记录当前的实例 ID，并且永远不会改变。
 - 即使重新安装插件，或更改图床地址，或执行其他任何操作，只要实例 ID 与附件记录的匹配就会自动关联。
 
-实例 ID 可以是任意字符串。
+实例 ID 可以是任意字符串。更改实例 ID 将导致之前上传的附件失去关联。
 
-> [!NOTE]
+> [!TIP]
 >
 > **推荐一开始就手动设置实例 ID。**
 >
 > 默认生成的 ID 与 Lsky Pro 地址关联（忽略协议）。这意味着地址更换将导致之前上传的附件失去关联，从 Halo 删除时无法同步删除 Lsky Pro 中的文件。
 
-> [!NOTE]
->
-> 中途更改实例 ID 将导致之前上传的附件失去关联。
 
 ## 建议/反馈
 

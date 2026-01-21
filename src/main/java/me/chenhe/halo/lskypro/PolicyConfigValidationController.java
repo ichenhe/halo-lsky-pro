@@ -28,10 +28,11 @@ public class PolicyConfigValidationController {
     private static final String FILE_NAME = "validation.png";
 
     @PostMapping("/policies/validation")
-    public Mono<Void> validatePolicyConfig(@RequestBody LskyProProperties properties) {
+    public Mono<Void> validatePolicyConfig(@RequestBody LskyProProperties props) {
         final var content = readImage();
-        final var client = new LskyProClient(properties.getLskyUrl(), properties.getLskyToken());
-        return client.upload(content, FILE_NAME, null, properties.getLskyStrategy())
+        final var client = new LskyProClient(props.getLskyUrl(), props.getLskyToken());
+        return client.upload(content, FILE_NAME, null, props.getLskyStrategy(),
+                props.getLskyAlbumId())
             .doOnNext(r -> log.info("Validate LskyPro policy config: upload successful: {}", r))
             .flatMap((uploadResp) -> client.delete(uploadResp.key()))
             .onErrorMap(LskyProAttachmentHandler::handleError)

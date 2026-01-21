@@ -46,8 +46,13 @@ public class LskyProClient {
         });
     }
 
-    public Mono<UploadResponse> upload(@NotNull Flux<DataBuffer> content, @Nullable String filename,
-        @Nullable MediaType contentType, Integer strategyId) {
+    public Mono<UploadResponse> upload(
+        @NotNull Flux<DataBuffer> content,
+        @Nullable String filename,
+        @Nullable MediaType contentType,
+        @Nullable Integer strategyId,
+        @Nullable Integer albumId
+    ) {
 
         final var bodyBuilder = new MultipartBodyBuilder();
         final var filePartBuilder = bodyBuilder.asyncPart("file", content, DataBuffer.class);
@@ -62,6 +67,9 @@ public class LskyProClient {
         }
         if (strategyId != null) {
             bodyBuilder.part("strategy_id", strategyId);
+        }
+        if (albumId != null) {
+            bodyBuilder.part("album_id", albumId);
         }
 
         return client.post()
