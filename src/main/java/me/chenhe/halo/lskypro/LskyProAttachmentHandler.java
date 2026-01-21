@@ -80,7 +80,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
 
                 return delete(key.get(), properties)
                     .then(Mono.just(ctx))
-                    .doOnSuccess(v -> log.info("Attachment {} deleted from LskyPro.",
+                    .doOnSuccess(v -> log.debug("Attachment {} deleted from LskyPro.",
                         ctx.attachment().getMetadata().getName()));
             })
             .onErrorMap(LskyProAttachmentHandler::handleError)
@@ -168,7 +168,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             url.lastIndexOf('/') == -1 ? null : url.substring(url.lastIndexOf('/') + 1);
         var inferredMediaType = MediaTypeFactory.getMediaType(filename);
         if (inferredMediaType.isPresent() && !inferredMediaType.get().equals(mediaType)) {
-            log.info("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
+            log.debug("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
                 mediaType);
             mediaType = inferredMediaType.get();
         }
@@ -187,7 +187,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         attachment.setSpec(spec);
         attachment.setStatus(status);
 
-        log.info("Built attachment {} successfully", uploadResponse.key());
+        log.debug("Built attachment {} successfully", uploadResponse.key());
         return attachment;
     }
 
