@@ -98,8 +98,12 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         if (!shouldHandle(policy, null)) {
             return Mono.empty();
         }
-        final var link = getImageLink(attachment);
-        return link.map(s -> Mono.just(URI.create(s))).orElseGet(Mono::empty);
+
+        return Optional.ofNullable(attachment.getStatus())
+            .map(Attachment.AttachmentStatus::getPermalink)
+            .or(() -> getImageLink(attachment))
+            .map(s -> Mono.just(URI.create(s)))
+            .orElseGet(Mono::empty);
     }
 
     Mono<Void> delete(String key, LskyProProperties properties) {
@@ -176,9 +180,13 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             log.warn("No media type in API response nor can it be inferred from the url {}", url);
         }
 
+        final var status = new Attachment.AttachmentStatus();
+        status.setPermalink(url);
         final var attachment = new Attachment();
         attachment.setMetadata(metadata);
         attachment.setSpec(spec);
+        attachment.setStatus(status);
+
         log.info("Built attachment {} successfully", uploadResponse.key());
         return attachment;
     }
