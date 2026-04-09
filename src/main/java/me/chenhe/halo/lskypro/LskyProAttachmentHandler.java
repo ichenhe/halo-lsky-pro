@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.validation.constraints.Null;
 import lombok.extern.slf4j.Slf4j;
 import me.chenhe.halo.lskypro.client.LskyProClient;
 import me.chenhe.halo.lskypro.client.LskyProException;
@@ -143,48 +144,61 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(INSTANCE_ID));
     }
 
+    private @Null MediaType getUploadedImageMediaType(final UploadResponse uploadResponse) {
+        // The lsky pro returns media type of the raw uploaded file, which may different from the
+        // persistent one after image processing.
+        // So, try to infer the real type from file name. e.g. a.png -> image/png
+
+        final String filename = uploadResponse.name();
+        final MediaType inferredMediaType = MediaTypeFactory.getMediaType(filename).orElse(null);
+        MediaType returnedMediaType = null;
+        try {
+            returnedMediaType = MediaType.parseMediaType(uploadResponse.mimetype());
+        } catch (InvalidMediaTypeException ignored) {
+        }
+
+        if (inferredMediaType == null && returnedMediaType == null) {
+            log.warn("No media type in API response nor can it be inferred from the name {}",
+                filename);
+            return null;
+        }
+
+        if (inferredMediaType != null && returnedMediaType != null) {
+            if (!inferredMediaType.equals(returnedMediaType)) {
+                log.debug("Use inferred media type '{}', rather than '{}'", inferredMediaType,
+                    returnedMediaType);
+            }
+            return inferredMediaType;
+        }
+
+        return inferredMediaType != null ? inferredMediaType : returnedMediaType;
+    }
+
     Attachment buildAttachment(UploadResponse uploadResponse, @Nonnull String instanceId) {
         Assert.hasText(instanceId, "instanceId cannot be empty");
         Assert.notNull(uploadResponse.links(), "links cannot be null");
         Assert.hasText(uploadResponse.links().url(), "url cannot be empty");
 
+        final var displayName = StringUtils.hasText(uploadResponse.origin_name())
+            ? uploadResponse.origin_name() : uploadResponse.name();
         final var url = uploadResponse.links().url();
+        final var mediaType = getUploadedImageMediaType(uploadResponse);
 
         final var metadata = new Metadata();
         metadata.setGenerateName(UUID.randomUUID().toString());
-        final var annotations = Map.of(
+        metadata.setAnnotations(Map.of(
             IMAGE_KEY, uploadResponse.key(),
             IMAGE_LINK, url,
             INSTANCE_ID, instanceId
-        );
-        metadata.setAnnotations(annotations);
+        ));
 
-        // Warning: due to the limitation of Lsky Pro API,
-        // the file size may be wrong if you configured server side image conversion.
         var spec = new Attachment.AttachmentSpec();
-
-        // The lsky pro returns media type of uploaded file, which is not same with actual url if
-        // image conversion or compression is enabled.
-        // So, try to infer the real type from url. e.g. https://example.com/a.png -> image/png
-        MediaType mediaType = null;
-        try {
-            mediaType = MediaType.parseMediaType(uploadResponse.mimetype());
-        } catch (InvalidMediaTypeException ignored) {
-        }
-        final var filename =
-            url.lastIndexOf('/') == -1 ? null : url.substring(url.lastIndexOf('/') + 1);
-        var inferredMediaType = MediaTypeFactory.getMediaType(filename);
-        if (inferredMediaType.isPresent() && !inferredMediaType.get().equals(mediaType)) {
-            log.debug("Use inferred media type '{}', rather than '{}'", inferredMediaType.get(),
-                mediaType);
-            mediaType = inferredMediaType.get();
-        }
+        // Due to the limitations of LskyPro, it is the original size rather than the actual size
+        // after image processing.
         spec.setSize((long) (uploadResponse.size() * 1024L));
-        spec.setDisplayName(uploadResponse.name());
+        spec.setDisplayName(displayName);
         if (mediaType != null) {
             spec.setMediaType(mediaType.toString());
-        } else {
-            log.warn("No media type in API response nor can it be inferred from the url {}", url);
         }
 
         final var status = new Attachment.AttachmentStatus();
