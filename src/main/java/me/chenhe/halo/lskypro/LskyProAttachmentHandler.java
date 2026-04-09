@@ -9,7 +9,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import jakarta.validation.constraints.Null;
 import lombok.extern.slf4j.Slf4j;
 import me.chenhe.halo.lskypro.client.LskyProClient;
 import me.chenhe.halo.lskypro.client.LskyProException;
@@ -144,7 +143,7 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
         return Optional.ofNullable(attachment.getMetadata().getAnnotations().get(INSTANCE_ID));
     }
 
-    private @Null MediaType getUploadedImageMediaType(final UploadResponse uploadResponse) {
+    private @Nullable MediaType getUploadedImageMediaType(final UploadResponse uploadResponse) {
         // The lsky pro returns media type of the raw uploaded file, which may different from the
         // persistent one after image processing.
         // So, try to infer the real type from file name. e.g. a.png -> image/png
