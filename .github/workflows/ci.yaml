@@ -31,7 +31,7 @@ jobs:
           java-version: "21"
           cache: "gradle"
       - name: Build with gradle
-        run: ./gradlew clean build
+        run: ./gradlew --no-daemon clean build
 
       - name: Get built jar
         id: jar
