@@ -25,6 +25,7 @@ import org.springframework.web.server.ServerErrorException;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import run.halo.app.core.attachment.ThumbnailSize;
 import run.halo.app.core.extension.attachment.Attachment;
 import run.halo.app.core.extension.attachment.Policy;
 import run.halo.app.core.extension.attachment.endpoint.AttachmentHandler;
@@ -104,6 +105,12 @@ public class LskyProAttachmentHandler implements AttachmentHandler {
             .or(() -> getImageLink(attachment))
             .map(s -> Mono.just(URI.create(s)))
             .orElseGet(Mono::empty);
+    }
+
+    @Override
+    public Mono<Map<ThumbnailSize, URI>> getThumbnailLinks(Attachment attachment, Policy policy,
+        ConfigMap configMap) {
+        return Mono.just(Map.of());
     }
 
     Mono<Void> delete(String key, LskyProProperties properties) {
